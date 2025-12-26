@@ -6,6 +6,8 @@
 
 -- started on 5/18/22
 
+-- modified by mateodev. on 12/26/25
+
 local inputService = cloneref(game:GetService('UserInputService'))
 local renderService = cloneref(game:GetService('RunService'))
 local tweenService = cloneref(game:GetService('TweenService'))
@@ -7493,29 +7495,47 @@ do
                 
                 tween(display, {TextColor3 = theme.Primary}, 0.3, 1)
                 self.inputCon = inputService.InputBegan:Connect(function(io, gpe) 
-                    local kc = io.KeyCode.Name
-                    if (kc == 'Unknown' or kc == 'Escape') then 
-                        self.hotkey = nil
-                        display.Text = '[None]'
-                        self.inputCon:Disconnect()
-                        self.inputCon = nil 
-                        
-                        if (self.focused) then 
-                            tween(display, {TextColor3 = theme.TextPrimary}, 0.3, 1)
-                        else
-                            tween(display, {TextColor3 = theme.TextDim}, 0.3, 1)
+                    if (io.UserInputType == Enum.UserInputType.Keyboard) then
+                        local kc = io.KeyCode.Name
+                        if (kc == 'Unknown' or kc == 'Escape') then 
+                            self.hotkey = nil
+                            display.Text = '[None]'
+                            self.inputCon:Disconnect()
+                            self.inputCon = nil 
+                            
+                            if (self.focused) then 
+                                tween(display, {TextColor3 = theme.TextPrimary}, 0.3, 1)
+                            else
+                                tween(display, {TextColor3 = theme.TextDim}, 0.3, 1)
+                            end
+                        else 
+                            self.hotkey = io.KeyCode
+                            self.set = time()
+                            display.Text = ('[%s]'):format(kc)
+                            self.inputCon:Disconnect()
+                            self.inputCon = nil 
+                            
+                            if (self.focused) then 
+                                tween(display, {TextColor3 = theme.TextPrimary}, 0.3, 1)
+                            else
+                                tween(display, {TextColor3 = theme.TextDim}, 0.3, 1)
+                            end
                         end
-                    else 
-                        self.hotkey = io.KeyCode
-                        self.set = time()
-                        display.Text = ('[%s]'):format(kc)
-                        self.inputCon:Disconnect()
-                        self.inputCon = nil 
-                        
-                        if (self.focused) then 
-                            tween(display, {TextColor3 = theme.TextPrimary}, 0.3, 1)
-                        else
-                            tween(display, {TextColor3 = theme.TextDim}, 0.3, 1)
+                    else
+                        -- support mouse buttons (e.g. MouseButton2) and other UserInputType binds
+                        local uit = io.UserInputType
+                        if (uit == Enum.UserInputType.MouseButton1 or uit == Enum.UserInputType.MouseButton2) then
+                            self.hotkey = uit
+                            self.set = time()
+                            display.Text = ('[%s]'):format(uit.Name)
+                            self.inputCon:Disconnect()
+                            self.inputCon = nil 
+                            
+                            if (self.focused) then 
+                                tween(display, {TextColor3 = theme.TextPrimary}, 0.3, 1)
+                            else
+                                tween(display, {TextColor3 = theme.TextDim}, 0.3, 1)
+                            end
                         end
                     end
                 end)
@@ -7598,14 +7618,16 @@ do
             hotkey.setHotkey = function(self, hotkey) 
                 if (hotkey) then 
                     if (typeof(hotkey) == 'EnumItem') then
-                        if (hotkey.EnumType ~= Enum.KeyCode) then
-                            return error('expected EnumItem of EnumType KeyCode for hotkey', 2) 
+                        if (hotkey.EnumType ~= Enum.KeyCode and hotkey.EnumType ~= Enum.UserInputType) then
+                            return error('expected EnumItem of EnumType KeyCode or UserInputType for hotkey', 2) 
                         end
                     else
                         if (Enum.KeyCode[hotkey]) then
                             hotkey = Enum.KeyCode[hotkey]
+                        elseif (Enum.UserInputType[hotkey]) then
+                            hotkey = Enum.UserInputType[hotkey]
                         else
-                            return error('expected valid Enum.KeyCode Name, or Enum.KeyCode EnumItem', 2)  
+                            return error('expected valid Enum.KeyCode or Enum.UserInputType Name, or EnumItem', 2)  
                         end
                     end
                     
@@ -7628,14 +7650,16 @@ do
                 
                 if (s_bind) then 
                     if (typeof(s_bind) == 'EnumItem') then
-                        if (s_bind.EnumType ~= Enum.KeyCode) then
-                            return error('expected EnumItem of EnumType KeyCode for settings.bind', 2) 
+                        if (s_bind.EnumType ~= Enum.KeyCode and s_bind.EnumType ~= Enum.UserInputType) then
+                            return error('expected EnumItem of EnumType KeyCode or UserInputType for settings.bind', 2) 
                         end
                     else
                         if (Enum.KeyCode[s_bind]) then
                             s_bind = Enum.KeyCode[s_bind]
+                        elseif (Enum.UserInputType[s_bind]) then
+                            s_bind = Enum.UserInputType[s_bind]
                         else
-                            return error('expected valid Enum.KeyCode Name, or Enum.KeyCode EnumItem', 2)  
+                            return error('expected valid Enum.KeyCode or Enum.UserInputType Name, or EnumItem', 2)  
                         end
                     end
                 end
@@ -7860,20 +7884,32 @@ do
     do 
         local hotkeys = ui.hotkeys
         ui.hkCon = inputService.InputBegan:Connect(function(io, gpe) 
-            if ((not gpe) and (io.UserInputType.Name == 'Keyboard')) then
-                local kc = io.KeyCode
-                
-                for i = 1, #hotkeys do 
-                    local hotkey = hotkeys[i]
-                    if (hotkey.hotkey == kc and hotkey.set ~= time()) then
-                        local linkedControl = hotkey.linkedControl
-                        if (linkedControl) then 
-                            task.spawn(linkedControl.__hotkeyFunc, linkedControl)
+                if (not gpe) then
+                    if (io.UserInputType == Enum.UserInputType.Keyboard) then
+                        local kc = io.KeyCode
+                        for i = 1, #hotkeys do 
+                            local hotkey = hotkeys[i]
+                            if (hotkey.hotkey == kc and hotkey.set ~= time()) then
+                                local linkedControl = hotkey.linkedControl
+                                if (linkedControl) then 
+                                    task.spawn(linkedControl.__hotkeyFunc, linkedControl)
+                                end
+                            end
+                        end
+                    else
+                        local uit = io.UserInputType
+                        for i = 1, #hotkeys do 
+                            local hotkey = hotkeys[i]
+                            if (hotkey.hotkey == uit and hotkey.set ~= time()) then
+                                local linkedControl = hotkey.linkedControl
+                                if (linkedControl) then 
+                                    task.spawn(linkedControl.__hotkeyFunc, linkedControl)
+                                end
+                            end
                         end
                     end
-                end 
-            end
-        end)
+                end
+            end)
     end
 end
 
