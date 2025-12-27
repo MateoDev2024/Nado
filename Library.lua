@@ -5756,12 +5756,21 @@ do
                     ImageColor3 = theme.Primary
                 }, 0.3, 1)
                 
-                tween(self.instances.menu, {
-                    Size = UDim2.new(1, -6, 0, math.min(200, (self.instances.menu['#layout'] and self.instances.menu['#layout'].AbsoluteContentSize.Y or 68) + 8))
-                }, 0.2, 1)
-                tween(self.instances.controlFrame, {
-                    Size = UDim2.new(1, 0, 0, (self.instances.menu.Size.Y.Offset) + 20)
-                }, 0.2, 1)
+                -- reparent menu to uiScreen so it renders above other elements
+                local menu = self.instances.menu
+                if menu and menu.Parent ~= uiScreen then
+                    self._oldMenuParent = menu.Parent
+                    self._oldMenuPos = menu.Position
+                    self._oldMenuZ = menu.ZIndex
+                    local absPos = self.instances.controlFrame.AbsolutePosition
+                    menu.Parent = uiScreen
+                    menu.ZIndex = 1e6
+                    menu.Position = UDim2.fromOffset(absPos.X + 3, absPos.Y + 20)
+                end
+
+                local targetHeight = math.min(200, (self.instances.menu['#layout'] and self.instances.menu['#layout'].AbsoluteContentSize.Y or 68) + 8)
+                tween(menu, {Size = UDim2.new(1, -6, 0, targetHeight)}, 0.2, 1)
+                tween(self.instances.controlFrame, { Size = UDim2.new(1, 0, 0, (targetHeight) + 20) }, 0.2, 1)
             end
             dropdown.close = function(self) 
                 self.openState = false
@@ -5777,12 +5786,21 @@ do
                     Rotation = 0,
                     ImageColor3 = theme.Secondary
                 }, 0.3, 1)
-                tween(self.instances.menu, {
-                    Size = UDim2.new(1, -6, 0, 0)
-                }, 0.2, 1)
-                tween(self.instances.controlFrame, {
-                    Size = UDim2.new(1, 0, 0, 20)
-                }, 0.2, 1)
+                local menu = self.instances.menu
+                tween(menu, { Size = UDim2.new(1, -6, 0, 0) }, 0.2, 1)
+                tween(self.instances.controlFrame, { Size = UDim2.new(1, 0, 0, 20) }, 0.2, 1)
+
+                -- restore parent after animation
+                task.delay(0.22, function()
+                    if menu and self._oldMenuParent then
+                        menu.Parent = self._oldMenuParent
+                        menu.Position = self._oldMenuPos or menu.Position
+                        menu.ZIndex = self._oldMenuZ or menu.ZIndex
+                        self._oldMenuParent = nil
+                        self._oldMenuPos = nil
+                        self._oldMenuZ = nil
+                    end
+                end)
             end
             
             dropdown.isOpen = function(self) 
