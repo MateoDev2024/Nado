@@ -5181,38 +5181,40 @@ do
                 controlFrame.BackgroundTransparency = 1
                 controlFrame.Name = '#control'
                 controlFrame.Size = UDim2.new(1, 0, 0, 20)
+                controlFrame.AutomaticSize = 'Y'
                 controlFrame.Visible = true
                 controlFrame.ZIndex = 34
                 
                 instances.controlFrame = controlFrame
 
-                local label = Instance.new('TextLabel') do 
-                    label.BackgroundTransparency = 1
-                    label.Font = 'SourceSans'
-                    label.Name = '#label'
-                    label.RichText = true
-                    label.Size = UDim2.fromScale(1, 1)
-                    label.Text = 'label'
-                    label.TextColor3 = theme.TextPrimary
-                    label.TextSize = 14
-                    label.TextStrokeColor3 = theme.TextStroke
-                    label.TextStrokeTransparency = 0.8
-                    label.TextTransparency = 0
-                    label.TextWrapped = false
-                    label.TextXAlignment = 'Left'
-                    label.TextYAlignment = 'Center'
-                    label.Visible = true
-                    label.ZIndex = 35
-                    
-                    label.Parent = controlFrame
-                    
-                    local padding = Instance.new('UIPadding') do 
-                        padding.Name = '#padding'
-                        padding.PaddingLeft = UDim.new(0, 6)
+                    local label = Instance.new('TextLabel') do 
+                        label.BackgroundTransparency = 1
+                        label.Font = 'SourceSans'
+                        label.Name = '#label'
+                        label.RichText = true
+                        label.AutomaticSize = 'Y'
+                        label.Size = UDim2.new(1, 0, 0, 0)
+                        label.Text = 'label'
+                        label.TextColor3 = theme.TextPrimary
+                        label.TextSize = 14
+                        label.TextStrokeColor3 = theme.TextStroke
+                        label.TextStrokeTransparency = 0.8
+                        label.TextTransparency = 0
+                        label.TextWrapped = true
+                        label.TextXAlignment = 'Left'
+                        label.TextYAlignment = 'Top'
+                        label.Visible = true
+                        label.ZIndex = 35
                         
-                        padding.Parent = label
+                        label.Parent = controlFrame
+                        
+                        local padding = Instance.new('UIPadding') do 
+                            padding.Name = '#padding'
+                            padding.PaddingLeft = UDim.new(0, 6)
+                            
+                            padding.Parent = label
+                        end
                     end
-                end
             end
             label.instances = instances 
             
