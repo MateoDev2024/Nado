@@ -5961,13 +5961,38 @@ do
                 
                 local s_title = settings.text or 'nil'
                 local s_options = settings.options or {}
+                local s_label = settings.label or nil -- external label text (optional)
                 
                 local new = dropdown:new()
                 new.section = self 
                 new.name = s_title
                 table.insert(self.controls, new)
                 
+                -- set internal button label
                 new.instances.label.Text = s_title
+
+                -- optional external label to show what the dropdown represents
+                if (s_label) then
+                    local titleLabel = Instance.new('TextLabel')
+                    titleLabel.Name = '#title'
+                    titleLabel.BackgroundTransparency = 1
+                    titleLabel.Font = 'SourceSans'
+                    titleLabel.Size = UDim2.new(0, 120, 0, 16)
+                    titleLabel.Position = UDim2.fromOffset(6, 2)
+                    titleLabel.Text = tostring(s_label)
+                    titleLabel.TextColor3 = theme.TextPrimary
+                    titleLabel.TextSize = 14
+                    titleLabel.TextXAlignment = 'Left'
+                    titleLabel.TextYAlignment = 'Center'
+                    titleLabel.ZIndex = 35
+                    titleLabel.Parent = new.instances.controlFrame
+
+                    -- shrink the dropdown button to make room for the label
+                    if new.instances.button then
+                        new.instances.button.Size = UDim2.new(1, -132, 0, 16)
+                    end
+                end
+
                 new.instances.controlFrame.Parent = self.instances.controlMenu
                 if #s_options > 0 then new:setOptions(s_options) end
                 return new
