@@ -5865,6 +5865,9 @@ do
                 lbl.Size = UDim2.fromScale(1, 1)
                 lbl.Text = text
                 lbl.TextColor3 = theme.TextPrimary
+                lbl.TextStrokeColor3 = theme.TextStroke
+                lbl.TextStrokeTransparency = 0.8
+                lbl.TextTransparency = 0
                 lbl.TextSize = 14
                 lbl.TextWrapped = false
                 lbl.TextXAlignment = 'Center'
