@@ -5763,14 +5763,30 @@ do
                     self._oldMenuPos = menu.Position
                     self._oldMenuZ = menu.ZIndex
                     local absPos = self.instances.controlFrame.AbsolutePosition
+                    local absSize = self.instances.controlFrame.AbsoluteSize
                     menu.Parent = uiScreen
                     menu.ZIndex = 1e6
+                    -- set position and size in absolute pixels so it doesn't expand full-screen
                     menu.Position = UDim2.fromOffset(absPos.X + 3, absPos.Y + 20)
+                    menu.Size = UDim2.fromOffset(math.max(16, absSize.X - 6), 0)
                 end
 
-                local targetHeight = math.min(200, (self.instances.menu['#layout'] and self.instances.menu['#layout'].AbsoluteContentSize.Y or 68) + 8)
-                tween(menu, {Size = UDim2.new(1, -6, 0, targetHeight)}, 0.2, 1)
+                -- ensure layout/canvas is up-to-date and compute height
+                updateCanvas(menu)
+                local layout = menu:FindFirstChild('#layout') or menu:FindFirstChildOfClass('UIListLayout')
+                local contentH = layout and layout.AbsoluteContentSize.Y or 68
+                local targetHeight = math.min(200, contentH + 8)
+
+                tween(menu, {Size = UDim2.fromOffset(menu.AbsoluteSize.X, targetHeight)}, 0.2, 1)
                 tween(self.instances.controlFrame, { Size = UDim2.new(1, 0, 0, (targetHeight) + 20) }, 0.2, 1)
+
+                -- keep menu following its control while window moves
+                if self._menuFollowCon then self._menuFollowCon:Disconnect() end
+                self._menuFollowCon = renderService.RenderStepped:Connect(function()
+                    if not menu or not self.instances.controlFrame then return end
+                    local absPos = self.instances.controlFrame.AbsolutePosition
+                    menu.Position = UDim2.fromOffset(absPos.X + 3, absPos.Y + 20)
+                end)
             end
             dropdown.close = function(self) 
                 self.openState = false
@@ -5787,10 +5803,14 @@ do
                     ImageColor3 = theme.Secondary
                 }, 0.3, 1)
                 local menu = self.instances.menu
-                tween(menu, { Size = UDim2.new(1, -6, 0, 0) }, 0.2, 1)
+                tween(menu, { Size = UDim2.fromOffset(menu.AbsoluteSize.X, 0) }, 0.2, 1)
                 tween(self.instances.controlFrame, { Size = UDim2.new(1, 0, 0, 20) }, 0.2, 1)
 
-                -- restore parent after animation
+                -- stop following and restore parent after animation
+                if self._menuFollowCon then
+                    self._menuFollowCon:Disconnect()
+                    self._menuFollowCon = nil
+                end
                 task.delay(0.22, function()
                     if menu and self._oldMenuParent then
                         menu.Parent = self._oldMenuParent
