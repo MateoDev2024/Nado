@@ -6,8 +6,6 @@
 
 -- started on 5/18/22
 
--- modified by mateodev. on 12/26/25
-
 local inputService = cloneref(game:GetService('UserInputService'))
 local renderService = cloneref(game:GetService('RunService'))
 local tweenService = cloneref(game:GetService('TweenService'))
@@ -5231,7 +5229,22 @@ do
             end
             
             label.setText = function(self, newText) 
-                self.instances.label.Text = tostring(newText)
+                local lbl = self.instances.label
+                lbl.TextWrapped = true
+                lbl.Text = tostring(newText)
+
+                -- ensure the control frame expands vertically until the text fits
+                local cf = self.instances.controlFrame
+                cf.Size = UDim2.new(1, 0, 0, 20)
+                local c = 0
+                while true do
+                    c += 1
+                    if (c > 30) then break end
+                    local _ = lbl.TextFits
+                    if (lbl.TextFits == true) then break end
+                    cf.Size += UDim2.fromOffset(0, 20)
+                end
+
                 return self
             end
             
@@ -5263,6 +5276,41 @@ do
                     labelInstance.TextXAlignment = 'Center'
                     labelInstance['#padding'].PaddingLeft = UDim.new(0, 0)
                 end
+                -- allow wrapping and auto-resize so text doesn't overflow the section
+                labelInstance.TextWrapped = true
+                label.instances.controlFrame.Parent = self.instances.controlMenu
+                return label
+            end
+
+            -- addRichLabel: like addLabel but enables RichText
+            elemClasses.section.addRichLabel = function(self, settings)
+                if (not typeof(settings) == 'table') then
+                    return error('expected type table for settings', 2)
+                end
+
+                local s_title = settings.text or 'nil'
+                local s_center = settings.center or false
+                local s_dim = settings.dim or false
+
+                local label = label:new()
+                label.section = self
+                table.insert(self.controls, label)
+
+                local labelInstance = label.instances.label
+                labelInstance.RichText = true
+                labelInstance.TextWrapped = true
+                labelInstance.Text = s_title
+
+                if (s_dim) then
+                    labelInstance.TextColor3 = theme.TextDim
+                end
+                if (s_center) then
+                    labelInstance.TextXAlignment = 'Center'
+                    labelInstance['#padding'].PaddingLeft = UDim.new(0, 0)
+                end
+
+                -- auto-resize to fit rich text
+                label:setText(s_title)
                 label.instances.controlFrame.Parent = self.instances.controlMenu
                 return label
             end
@@ -6194,6 +6242,9 @@ do
                 tween(self.instances.fill, {Size = UDim2.fromScale(fillValue, 1)}, 0.3, 1)
                 self.instances.value.Text = self.format:format(roundedValue)
             end
+            -- convenience aliases to match other element APIs (eg. :setHotkey)
+            slider.set = slider.setValue
+            slider.get = slider.getValue
             
             elemClasses.section.addSlider = function(self, settings, callback) 
                 if (not typeof(settings) == 'table') then
