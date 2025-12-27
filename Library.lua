@@ -5568,9 +5568,7 @@ do
         elemClasses.dropdownOption = dropdownOption
     end]]
 
-    -- Unfinished
     -- DROPDOWN
-    --[[
     do 
         local dropdown = {} do 
             dropdown.__index = dropdown 
@@ -5582,7 +5580,6 @@ do
                 local instances = {} do 
                     local controlFrame = Instance.new('Frame')
                     controlFrame.BackgroundTransparency = 1
-                    controlFrame.BackgroundColor3 = Color3.new(0, 1, 1)
                     controlFrame.Name = '#control'
                     controlFrame.Size = UDim2.new(1, 0, 0, 20)
                     controlFrame.Visible = true
@@ -5653,7 +5650,9 @@ do
                             local icon = Instance.new('ImageLabel') do 
                                 icon.AnchorPoint = Vector2.new(1, 0)
                                 icon.BackgroundTransparency = 1
-                                icon.Image = 'rbxassetid://9801473013'
+                                -- icon image kept as decorative
+                                --icon.Image = 'rbxassetid://9801473013'
+                                sethiddenproperty(icon, "Image", 'rbxassetid://9801473013')
                                 icon.ImageColor3 = theme.Secondary
                                 icon.Name = '#icon'
                                 icon.Position = UDim2.fromScale(1, 0)
@@ -5732,12 +5731,19 @@ do
             
             dropdown.focused = false
             dropdown.openState = false
+            dropdown.options = {}
+            dropdown.selected = nil
             
+            local function updateCanvas(menu)
+                local layout = menu:FindFirstChild('#layout') or menu:FindFirstChildOfClass('UIListLayout')
+                if layout then
+                    menu.CanvasSize = UDim2.fromOffset(0, layout.AbsoluteContentSize.Y + 8)
+                end
+            end
             
             dropdown.open = function(self) 
                 self.openState = true 
                 self:fireEvent('onOpen')
-                
                 
                 local frame = self.instances.button
                 if (self.focused) then
@@ -5750,12 +5756,11 @@ do
                     ImageColor3 = theme.Primary
                 }, 0.3, 1)
                 
-                
                 tween(self.instances.menu, {
-                    Size = UDim2.new(1, -6, 0, 68)
+                    Size = UDim2.new(1, -6, 0, math.min(200, (self.instances.menu['#layout'] and self.instances.menu['#layout'].AbsoluteContentSize.Y or 68) + 8))
                 }, 0.2, 1)
                 tween(self.instances.controlFrame, {
-                    Size = UDim2.new(1, 0, 0, 68+20)
+                    Size = UDim2.new(1, 0, 0, (self.instances.menu.Size.Y.Offset) + 20)
                 }, 0.2, 1)
             end
             dropdown.close = function(self) 
@@ -5785,8 +5790,11 @@ do
             end
             
             dropdown.setOptions = function(self, newOptions) 
-                for i, opt in ipairs(self.options) do 
-                    self:removeOption(opt)
+                -- clear existing
+                for i = #self.options, 1, -1 do
+                    local o = self.options[i]
+                    if o and o.button then o.button:Destroy() end
+                    table.remove(self.options, i)
                 end
                 for i, opt in ipairs(newOptions) do 
                     self:addOption(opt)
@@ -5794,15 +5802,86 @@ do
             end
             dropdown.refresh = dropdown.setOptions
             
-            dropdown.addOption = function(self) 
-            
+            dropdown.addOption = function(self, opt)
+                local text, value
+                if typeof(opt) == 'table' then
+                    text = tostring(opt.text or opt[1] or '')
+                    value = opt.value or opt[2] or text
+                else
+                    text = tostring(opt)
+                    value = opt
+                end
+
+                local menu = self.instances.menu
+                local btn = Instance.new('TextButton')
+                btn.Name = '#option'
+                btn.AutoButtonColor = false
+                btn.BackgroundTransparency = 1
+                btn.Text = ''
+                btn.ZIndex = 36
+                btn.Size = UDim2.new(1, -8, 0, 20)
+
+                local lbl = Instance.new('TextLabel')
+                lbl.BackgroundTransparency = 1
+                lbl.Font = 'SourceSans'
+                lbl.Size = UDim2.fromScale(1, 1)
+                lbl.Text = text
+                lbl.TextColor3 = theme.TextPrimary
+                lbl.TextSize = 14
+                lbl.TextWrapped = false
+                lbl.TextXAlignment = 'Center'
+                lbl.TextYAlignment = 'Center'
+                lbl.ZIndex = 36
+                lbl.Parent = btn
+
+                btn.Parent = menu
+
+                local index = #self.options + 1
+                table.insert(self.options, {text = text, value = value, button = btn})
+
+                btn.MouseButton1Click:Connect(function()
+                    self:setValue(value)
+                    self:close()
+                end)
+
+                task.defer(function() updateCanvas(menu) end)
+                return btn
             end
             
-            dropdown.removeOption = function(self) 
-            
+            dropdown.removeOption = function(self, needle)
+                for i = #self.options, 1, -1 do
+                    local o = self.options[i]
+                    if not o then continue end
+                    if o == needle or o.value == needle or o.text == needle then
+                        if o.button then o.button:Destroy() end
+                        table.remove(self.options, i)
+                        updateCanvas(self.instances.menu)
+                        return true
+                    end
+                end
+                return false
             end
             
-            
+            dropdown.setValue = function(self, val)
+                for i, o in ipairs(self.options) do
+                    if o.value == val or o.text == val then
+                        self.selected = o
+                        self.instances.label.Text = o.text
+                        self:fireEvent('onSelect', o.value, o.text)
+                        return self
+                    end
+                end
+                return error('could not find dropdown option', 2)
+            end
+            dropdown.getValue = function(self)
+                return self.selected and self.selected.value or nil
+            end
+            dropdown.getSelectedText = function(self)
+                return self.selected and self.selected.text or nil
+            end
+            dropdown.clear = function(self)
+                return self:setOptions({})
+            end
             
             dropdown.click = function(self) 
                 self.openState = not self.openState
@@ -5821,7 +5900,6 @@ do
                     MouseEnter = function(inst, self) 
                         self.focused = true
                         self:showTooltip()
-                        
                         
                         local frame = self.instances.button
                         if (self.openState) then
@@ -5850,10 +5928,10 @@ do
             }
             
             dropdown.new = function(self) 
-                
                 local new = setmetatable({}, self)
                 new.binds = {}
                 new.options = {}
+                new.selected = nil
                 
                 local instances = {}
                 instances.controlFrame = self.instances.controlFrame:Clone()
@@ -5876,7 +5954,6 @@ do
                 return new
             end
             
-            
             elemClasses.section.addDropdown = function(self, settings) 
                 if (not typeof(settings) == 'table') then
                     return error('expected type table for settings', 2) 
@@ -5892,13 +5969,13 @@ do
                 
                 new.instances.label.Text = s_title
                 new.instances.controlFrame.Parent = self.instances.controlMenu
+                if #s_options > 0 then new:setOptions(s_options) end
                 return new
             end
         end
         -- add class
         elemClasses.dropdown = dropdown
     end    
-    ]]
 
     -- SLIDER
     do 
