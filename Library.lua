@@ -5234,19 +5234,6 @@ do
                 local lbl = self.instances.label
                 lbl.TextWrapped = true
                 lbl.Text = tostring(newText)
-
-                -- ensure the control frame expands vertically until the text fits
-                local cf = self.instances.controlFrame
-                cf.Size = UDim2.new(1, 0, 0, 20)
-                local c = 0
-                while true do
-                    c += 1
-                    if (c > 30) then break end
-                    local _ = lbl.TextFits
-                    if (lbl.TextFits == true) then break end
-                    cf.Size += UDim2.fromOffset(0, 20)
-                end
-
                 return self
             end
             
