@@ -10,6 +10,7 @@ local inputService = cloneref(game:GetService('UserInputService'))
 local renderService = cloneref(game:GetService('RunService'))
 local tweenService = cloneref(game:GetService('TweenService'))
 local guiService = cloneref(game:GetService('GuiService'))
+local textService = cloneref(game:GetService('TextService'))
 
 local Color3RGB = Color3.fromRGB
 local Color3HSV = Color3.fromHSV
@@ -5687,6 +5688,7 @@ do
                             menu.MidImage = 'rbxassetid://9416839567'
                             menu.Name = '#menu'
                             menu.Position = UDim2.fromOffset(3, 18)
+                            menu.Visible = false
                             menu.ScrollBarImageTransparency = 0.9
                             menu.ScrollBarThickness = 1
                             menu.ScrollingDirection = 'Y'
@@ -5758,6 +5760,7 @@ do
                 
                 -- reparent menu to uiScreen so it renders above other elements
                 local menu = self.instances.menu
+                if menu then menu.Visible = true end
                 if menu and menu.Parent ~= uiScreen then
                     self._oldMenuParent = menu.Parent
                     self._oldMenuPos = menu.Position
@@ -5841,6 +5844,8 @@ do
                             self._oldMenuZIndices = nil
                         end
 
+                        -- hide menu after closing animation to avoid any 1px stroke showing
+                        pcall(function() menu.Visible = false end)
                         menu.Parent = self._oldMenuParent
                         menu.Position = self._oldMenuPos or menu.Position
                         menu.ZIndex = self._oldMenuZ or menu.ZIndex
@@ -5936,6 +5941,30 @@ do
                     if o.value == val or o.text == val then
                         self.selected = o
                         self.instances.label.Text = o.text
+                        -- resize the dropdown button to fit selected text
+                        pcall(function()
+                            local lbl = self.instances.label
+                            local fontEnum = Enum.Font.SourceSans
+                            if typeof(lbl.Font) == 'EnumItem' then
+                                fontEnum = lbl.Font
+                            else
+                                local f = Enum.Font[tostring(lbl.Font)]
+                                if f then fontEnum = f end
+                            end
+                            local sizeVec = textService:GetTextSize(tostring(o.text or ''), lbl.TextSize or 14, fontEnum, Vector2.new(10000, 1000))
+                            local textWidth = math.ceil(sizeVec.X)
+                            local pad = 20
+                            local maxW = 400
+                            if self.instances.controlFrame and self.instances.controlFrame.AbsoluteSize and self.instances.controlFrame.AbsoluteSize.X and self.instances.controlFrame.AbsoluteSize.X > 0 then
+                                maxW = math.max(40, self.instances.controlFrame.AbsoluteSize.X - 6)
+                            end
+                            local newW = math.clamp(textWidth + pad, 40, maxW)
+                            local btn = self.instances.button
+                            if btn then
+                                btn.Size = UDim2.fromOffset(newW, btn.AbsoluteSize.Y > 0 and btn.AbsoluteSize.Y or 16)
+                            end
+                        end)
+
                         self:fireEvent('onSelect', o.value, o.text)
                         return self
                     end
