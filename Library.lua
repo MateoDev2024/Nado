@@ -5764,8 +5764,26 @@ do
                     self._oldMenuZ = menu.ZIndex
                     local absPos = self.instances.controlFrame.AbsolutePosition
                     local absSize = self.instances.controlFrame.AbsoluteSize
+                    -- store original ZIndices for restoration
+                    local oldZ = {}
+                    for _, v in ipairs(menu:GetDescendants()) do
+                        if v and v:IsA and v:IsA('GuiObject') then
+                            oldZ[v] = v.ZIndex
+                        end
+                    end
+                    -- also include the menu itself
+                    oldZ[menu] = menu.ZIndex
+                    self._oldMenuZIndices = oldZ
+
                     menu.Parent = uiScreen
-                    menu.ZIndex = 1e6
+                    -- raise the menu and all descendants so they render above other UI
+                    menu.ZIndex = 1000000
+                    for _, v in ipairs(menu:GetDescendants()) do
+                        if v and v:IsA and v:IsA('GuiObject') then
+                            v.ZIndex = 1000001
+                        end
+                    end
+
                     -- set position and size in absolute pixels so it doesn't expand full-screen
                     menu.Position = UDim2.fromOffset(absPos.X + 3, absPos.Y + 20)
                     menu.Size = UDim2.fromOffset(math.max(16, absSize.X - 6), 0)
@@ -5813,6 +5831,16 @@ do
                 end
                 task.delay(0.22, function()
                     if menu and self._oldMenuParent then
+                        -- restore descendants' ZIndex if we stored them
+                        if self._oldMenuZIndices then
+                            for obj, z in pairs(self._oldMenuZIndices) do
+                                if obj and obj.Parent then
+                                    pcall(function() obj.ZIndex = z end)
+                                end
+                            end
+                            self._oldMenuZIndices = nil
+                        end
+
                         menu.Parent = self._oldMenuParent
                         menu.Position = self._oldMenuPos or menu.Position
                         menu.ZIndex = self._oldMenuZ or menu.ZIndex
