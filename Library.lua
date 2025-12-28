@@ -5767,7 +5767,7 @@ do
                     -- store original ZIndices for restoration
                     local oldZ = {}
                     for _, v in ipairs(menu:GetDescendants()) do
-                        if v and v:IsA('GuiObject') then
+                        if v ~= nil and v:IsA('GuiObject') then
                             oldZ[v] = v.ZIndex
                         end
                     end
@@ -5779,7 +5779,7 @@ do
                     -- raise the menu and all descendants so they render above other UI
                     menu.ZIndex = 1000000
                     for _, v in ipairs(menu:GetDescendants()) do
-                        if v and v:IsA('GuiObject') then
+                        if v ~= nil and v:IsA('GuiObject') then
                             v.ZIndex = 1000001
                         end
                     end
